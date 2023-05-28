@@ -1,0 +1,16 @@
+pinger:
+  devices_to_ping:
+    google:
+      ip: 8.8.8.8
+      rate: 2
+    router:
+      ip: 192.168.0.1
+      rate: 2
+    pixel_6a:
+      ip: 192.168.0.125
+      rate: 2
+    galaxy_A90:
+      ip: 192.168.0.127
+      rate: 2
+
+  buffer_size: 100
