@@ -6,6 +6,7 @@ from collections import deque
 from threading import Thread
 # Third party libraries
 from pythonping import ping
+import numpy as np
 # Custom libraries
 
 
@@ -19,10 +20,17 @@ class PingWorker(Thread):
     def run(self) -> None:
         self.__keep_pinging = True
         while self.__keep_pinging:
+            initial_time = time.time()
+
             response = ping(self.__target_info["ip"], count=1, verbose=False)
             self.__target_deque.popleft()
             self.__target_deque.append(response.rtt_avg_ms)
-            time.sleep(self.__target_info["rate"])
+
+            final_time = time.time()
+            sleeping_time = self.__target_info["rate"] - (final_time-initial_time)
+            sleeping_time = float(np.clip(sleeping_time, a_min=0, a_max=None))
+
+            time.sleep(sleeping_time)
 
     def join(self, timeout=None) -> None:
         self.__stop()
