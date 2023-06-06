@@ -1,14 +1,10 @@
-"""
-Example copied from https://stackoverflow.com/questions/63589249/plotly-dash-display-real-time-data-in-smooth-animation
-"""
+__author__ = "Nicolas Gutierrez"
+
 # Standard libraries
 # Third party libraries
 import pandas as pd
 import numpy as np
-# import plotly.express as px
-# import plotly.graph_objects as go
-# from jupyter_dash import JupyterDash
-from dash import Dash, dcc, html
+from dash import Dash, dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 # Custom libraries
 from ping_classes.pingmanager import PingManager
@@ -17,26 +13,64 @@ from ping_classes.pingmanager import PingManager
 pd.options.plotting.backend = "plotly"
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
+
 # Initialization
+def target_deque_infrastructure(ping_manager: PingManager) -> pd.DataFrame:
+    # infrastructure_df = ping_manager.target_deque.iloc[:, 0:3]
+    infrastructure_df = ping_manager.target_deque.iloc[:, :]
+    return infrastructure_df
+
+
+def target_deque_personal_devices(ping_manager: PingManager) -> pd.DataFrame:
+    infrastructure_df = ping_manager.target_deque.iloc[:, 3:]
+    return infrastructure_df
+
+
+def get_table():
+    df = target_deque_personal_devices(ping_manager)
+    devices_list = df.columns.to_list()
+    mean_list = np.round(df.tail(10).mean()).to_list()
+    std_list = np.round(df.tail(10).std()).to_list()
+    at_home = []
+    for x in mean_list:
+        if x > 1000:
+            at_home.append(False)
+        else:
+            at_home.append(True)
+
+    data_as_dict = {"Devices": devices_list,
+                    "Mean [ms]": mean_list,
+                    "Std [ms]": std_list,
+                    "At Home": at_home}
+    data_as_pd = pd.DataFrame(data_as_dict)
+
+    return data_as_pd
+
+
 ping_manager = PingManager("config.yaml")
 ping_manager.start()
-df = ping_manager.target_deque
-
-# plotly figure
-fig = df.plot(template='plotly_dark')
 
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(style={'backgroundColor': '#111111'},
                       children=[
-                          html.H1(children="Ping to target [ms]",
+                          # Title and Infrastructure figure
+                          html.H1(children="Infrastructure ping [ms]",
                                   style={'textAlign': 'center',
                                          'color': '#FFFFFF'}),
                           dcc.Interval(
-                              id='interval-component',
-                              interval=1 * 2050,  # in milliseconds
+                              id='interval_refresh',
+                              interval=1 * 1050,  # in milliseconds
                               n_intervals=0
                           ),
-                          dcc.Graph(id='graph'),
+                          dcc.Graph(id='infrastructure_graph'),
+                          # Title and personal devices figure
+                          html.H1(children="Personal devices ping [ms]",
+                                  style={'textAlign': 'center',
+                                         'color': '#FFFFFF'}),
+                          html.Div(dash_table.DataTable(data=get_table().to_dict('records'),
+                                                        columns=[{"name": i, "id": i} for i in get_table().columns],
+                                                        id='tbl')),
+                          # Button
                           html.Button('Submit', id='button-example-1'),
                           html.Div(id='output-container-button',
                                    children='Enter a value and press submit',
@@ -46,18 +80,25 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
 
 # Define callback to update graph
 @app.callback(
-    Output(component_id='graph', component_property='figure'),
-    [Input(component_id='interval-component', component_property="n_intervals")]
+    Output(component_id='infrastructure_graph', component_property='figure'),
+    Input(component_id='interval_refresh', component_property="n_intervals")
 )
-def streamFig(value):
-    global df
-    df = ping_manager.target_deque
+def stream_fig(value):
+    df = target_deque_infrastructure(ping_manager)
     fig = df.plot(template='plotly_dark')
     fig.update_layout(
         xaxis_title="Samples [-]",
         yaxis_title="Ping [ms]",
     )
     return fig
+
+
+@app.callback(
+    Output(component_id='tbl', component_property='data'),
+    Input(component_id='interval_refresh', component_property="n_intervals")
+)
+def stream_table(value):
+    return get_table().to_dict('records')
 
 
 @app.callback(
