@@ -1,34 +1,22 @@
 __author__ = "Nicolas Gutierrez"
 
 # Standard libraries
-import os
 import threading
 from collections import deque
 import pandas as pd
 from typing import Dict, List, Union
 # Third party libraries
-import yaml
 # Custom libraries
 from ping_classes.pingworker import PingWorker
+from utilities.utilities import load_conf
 
 
 class PingManager:
     def __init__(self, config_file: Union[str, dict]) -> None:
-        config = self.__load_conf(config_file)
+        config = load_conf(config_file)
         self.__target_deque = self.__ping_deque_instantiation(config)
         self.__ping_workers = self.__ping_workers_instantiation(config, self.__target_deque)
         self.started_event = threading.Event()
-
-    @staticmethod
-    def __load_conf(config_file: Union[str, dict]) -> dict:
-        if isinstance(config_file, str):
-            with open(os.path.join("config", config_file), "r") as f:
-                config = yaml.load(f, Loader=yaml.FullLoader)
-        elif isinstance(config_file, dict):
-            config = config_file
-        else:
-            raise TypeError("Config file should be a path to a yaml config or a dictionary.")
-        return config
 
     @staticmethod
     def __ping_deque_instantiation(config: dict) -> dict:

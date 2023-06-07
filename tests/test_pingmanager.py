@@ -20,13 +20,6 @@ class TestPingManager(unittest.TestCase):
                 "buffer_size": 10}}
         self.ping_manager = PingManager(self.config)
 
-    def test_load_conf(self) -> None:
-        # ARRANGE
-        # ACT
-        config_loaded = self.ping_manager._PingManager__load_conf(self.config)
-        # ASSERT
-        self.assertEqual(self.config, config_loaded)  # add assertion here
-
     def test_deque_instantiation(self) -> None:
         # ARRANGE
         # ACT
