@@ -1,90 +1,104 @@
 __author__ = "Nicolas Gutierrez"
 
 # Standard libraries
+import os
 # Third party libraries
 import pandas as pd
-import numpy as np
 from dash import Dash, dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 # Custom libraries
 from ping_classes.pingmanager import PingManager
+from ping_classes.pingdataextractor import PingDataExtractor
+from ping_classes.devicetype import DeviceType
 
 # Configuration
+configuration_path = os.path.join("config", "config.yaml")
 pd.options.plotting.backend = "plotly"
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-
 # Initialization
-def target_deque_infrastructure(ping_manager: PingManager) -> pd.DataFrame:
-    # infrastructure_df = ping_manager.target_deque.iloc[:, 0:3]
-    infrastructure_df = ping_manager.target_deque.iloc[:, :]
-    return infrastructure_df
-
-
-def target_deque_personal_devices(ping_manager: PingManager) -> pd.DataFrame:
-    infrastructure_df = ping_manager.target_deque.iloc[:, 3:]
-    return infrastructure_df
-
-
-def get_table():
-    df = target_deque_personal_devices(ping_manager)
-    devices_list = df.columns.to_list()
-    mean_list = np.round(df.tail(10).mean()).to_list()
-    std_list = np.round(df.tail(10).std()).to_list()
-    at_home = []
-    for x in mean_list:
-        if x > 1000:
-            at_home.append(False)
-        else:
-            at_home.append(True)
-
-    data_as_dict = {"Devices": devices_list,
-                    "Mean [ms]": mean_list,
-                    "Std [ms]": std_list,
-                    "At Home": at_home}
-    data_as_pd = pd.DataFrame(data_as_dict)
-
-    return data_as_pd
-
-
-ping_manager = PingManager("config.yaml")
+ping_manager = PingManager(configuration_path)
 ping_manager.start()
+ping_data_extractor = PingDataExtractor(configuration_path, ping_manager)
+init_table = ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 10)
 
+tabs_styles = {
+    'height': '44px'
+}
+tab_style = {
+    'borderBottom': '1px solid #d6d6d6',
+    'padding': '6px',
+    'fontWeight': 'bold'
+}
+
+tab_selected_style = {
+    'borderTop': '1px solid #d6d6d6',
+    'borderBottom': '1px solid #d6d6d6',
+    'backgroundColor': '#119DFF',
+    'color': 'white',
+    'padding': '6px'
+}
+
+# Dash layout
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(style={'backgroundColor': '#111111'},
                       children=[
-                          # Title and Infrastructure figure
-                          html.H1(children="Infrastructure ping [ms]",
+                          html.H1(children="Home Server",
                                   style={'textAlign': 'center',
                                          'color': '#FFFFFF'}),
-                          dcc.Interval(
-                              id='interval_refresh',
-                              interval=1 * 1050,  # in milliseconds
-                              n_intervals=0
-                          ),
-                          dcc.Graph(id='infrastructure_graph'),
-                          # Title and personal devices figure
-                          html.H1(children="Personal devices ping [ms]",
-                                  style={'textAlign': 'center',
-                                         'color': '#FFFFFF'}),
-                          html.Div(dash_table.DataTable(data=get_table().to_dict('records'),
-                                                        columns=[{"name": i, "id": i} for i in get_table().columns],
-                                                        id='tbl')),
-                          # Button
-                          html.Button('Submit', id='button-example-1'),
-                          html.Div(id='output-container-button',
-                                   children='Enter a value and press submit',
-                                   style={'color': '#FFFFFF'})
+                          dcc.Tabs([
+                              dcc.Tab(label='Network', style=tab_style, selected_style=tab_selected_style, children=[
+                                  html.H2(children="Infrastructure ping [ms]",
+                                          style={'textAlign': 'center',
+                                                 'color': '#FFFFFF'}
+                                          ),
+                                  dcc.Interval(
+                                      id='interval_refresh',
+                                      interval=1 * 2050,  # in milliseconds
+                                      n_intervals=0
+                                  ),
+                                  dcc.Graph(id='infrastructure_graph'),
+
+                                  # Title and personal devices figure
+                                  html.H2(children="Personal devices ping [ms]",
+                                          style={'textAlign': 'center',
+                                                 'color': '#FFFFFF'}
+                                          ),
+                                  html.Div(
+                                      dash_table.DataTable(data=init_table.to_dict('records'),
+                                                           columns=[{"name": i, "id": i} for i in init_table.columns],
+                                                           style_cell={'textAlign': 'center',
+                                                                       'backgroundColor': '#111111',
+                                                                       'color': 'white',
+                                                                       'font_size': '20px'},
+                                                           style_header={'border': '1px solid black',
+                                                                         'font_size': '30px'},
+                                                           style_as_list_view=True,
+                                                           id='tbl')
+                                  ),
+
+                                  # Button
+                                  html.Button('Submit',
+                                              id='button-example-1'),
+                                  html.Div(id='output-container-button',
+                                           children='Enter a value and press submit',
+                                           style={'color': '#FFFFFF'}
+                                           )
+                              ]),
+                              dcc.Tab(label='Energy', style=tab_style, selected_style=tab_selected_style, children=[])
+                          ])
+
+
                       ])
 
 
-# Define callback to update graph
+# Callbacks
 @app.callback(
     Output(component_id='infrastructure_graph', component_property='figure'),
     Input(component_id='interval_refresh', component_property="n_intervals")
 )
 def stream_fig(value):
-    df = target_deque_infrastructure(ping_manager)
+    df = ping_data_extractor.retrieve_ping_data(DeviceType.INFRASTRUCTURE)
     fig = df.plot(template='plotly_dark')
     fig.update_layout(
         xaxis_title="Samples [-]",
@@ -98,7 +112,7 @@ def stream_fig(value):
     Input(component_id='interval_refresh', component_property="n_intervals")
 )
 def stream_table(value):
-    return get_table().to_dict('records')
+    return ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 10).to_dict('records')
 
 
 @app.callback(
