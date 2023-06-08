@@ -7,20 +7,28 @@ import pandas as pd
 from dash import Dash, dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 # Custom libraries
-from ping_classes.pingmanager import PingManager
-from ping_classes.pingdataextractor import PingDataExtractor
-from ping_classes.devicetype import DeviceType
+from utilities.utilities import load_conf
+from labourers.leader import Leader
+from network_classes.ping_function import ping_function
+from network_classes.pingdataextractor import PingDataExtractor
+from network_classes.devicetype import DeviceType
+from energy_classes.power_function import power_function
 
 # Configuration
 configuration_path = os.path.join("config", "config.yaml")
 pd.options.plotting.backend = "plotly"
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+configuration = load_conf(configuration_path)
 
-# Initialization
-ping_manager = PingManager(configuration_path)
-ping_manager.start()
-ping_data_extractor = PingDataExtractor(configuration_path, ping_manager)
+# Initialization network
+ping_leader = Leader(configuration["network"], ping_function)
+ping_leader.start()
+ping_data_extractor = PingDataExtractor(configuration["network"], ping_leader)
 init_table = ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 10)
+
+# Initialization energy
+power_leader = Leader(configuration["energy"], power_function)
+power_leader.start()
 
 tabs_styles = {
     'height': '44px'
@@ -53,7 +61,7 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
                                                  'color': '#FFFFFF'}
                                           ),
                                   dcc.Interval(
-                                      id='interval_refresh',
+                                      id='interval_refresh_network',
                                       interval=1 * 2050,  # in milliseconds
                                       n_intervals=0
                                   ),
@@ -85,7 +93,19 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
                                            style={'color': '#FFFFFF'}
                                            )
                               ]),
-                              dcc.Tab(label='Energy', style=tab_style, selected_style=tab_selected_style, children=[])
+                              dcc.Tab(label='Energy', style=tab_style, selected_style=tab_selected_style, children=[
+                                  html.H2(children="Energy [W]",
+                                          style={'textAlign': 'center',
+                                                 'color': '#FFFFFF'}
+                                          ),
+                                  dcc.Interval(
+                                      id='interval_refresh_energy',
+                                      interval=1 * 2050,  # in milliseconds
+                                      n_intervals=0
+                                  ),
+                                  dcc.Graph(id='energy_graph'),
+                              ]),
+                              dcc.Tab(label='Temperature', style=tab_style, selected_style=tab_selected_style, children=[]),
                           ])
 
 
@@ -95,9 +115,9 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
 # Callbacks
 @app.callback(
     Output(component_id='infrastructure_graph', component_property='figure'),
-    Input(component_id='interval_refresh', component_property="n_intervals")
+    Input(component_id='interval_refresh_network', component_property="n_intervals")
 )
-def stream_fig(value):
+def stream_fig_network(value):
     df = ping_data_extractor.retrieve_ping_data(DeviceType.INFRASTRUCTURE)
     fig = df.plot(template='plotly_dark')
     fig.update_layout(
@@ -109,10 +129,24 @@ def stream_fig(value):
 
 @app.callback(
     Output(component_id='tbl', component_property='data'),
-    Input(component_id='interval_refresh', component_property="n_intervals")
+    Input(component_id='interval_refresh_network', component_property="n_intervals")
 )
 def stream_table(value):
     return ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 10).to_dict('records')
+
+
+@app.callback(
+    Output(component_id='energy_graph', component_property='figure'),
+    Input(component_id='interval_refresh_energy', component_property="n_intervals")
+)
+def stream_fig_energy(value):
+    df = power_leader.target_deque
+    fig = df.plot(template='plotly_dark')
+    fig.update_layout(
+        xaxis_title="Samples [-]",
+        yaxis_title="Energy [W]",
+    )
+    return fig
 
 
 @app.callback(
