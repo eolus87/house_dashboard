@@ -1,6 +1,7 @@
 __author__ = "Nicolas Gutierrez"
 
 # Standard libraries
+import os
 import time
 import asyncio
 from typing import Tuple
@@ -8,7 +9,8 @@ from typing import Tuple
 import kasa
 # Custom libraries
 
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+if os.name == 'nt':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 async def switch_on(target: str) -> bool:

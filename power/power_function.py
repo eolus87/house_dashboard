@@ -1,13 +1,15 @@
 __author__ = "Nicolas Gutierrez"
 
 # Standard libraries
+import os
 import asyncio
 from typing import Tuple
 # Third party libraries
 import kasa
 # Custom libraries
 
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+if os.name == 'nt':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 async def power_request(target: str) -> Tuple[float, str]:
