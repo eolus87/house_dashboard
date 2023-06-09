@@ -3,12 +3,11 @@ __author__ = "Nicolas Gutierrez"
 # Standard libraries
 import unittest
 from collections import deque
-from multiprocessing import Process
 import time
 import copy
 # Third party libraries
 # Custom libraries
-from ping_classes.pingworker import PingWorker
+from labourers.worker import Worker
 
 
 class TestPingWorker(unittest.TestCase):
@@ -17,7 +16,7 @@ class TestPingWorker(unittest.TestCase):
         self.buffer_size = 100
         self.zero_deque = deque([0]*self.buffer_size)
         self.target_deque = copy.deepcopy(self.zero_deque)
-        self.pinger_worker = PingWorker(self.target_info, self.target_deque)
+        self.pinger_worker = Worker(self.target_info, self.target_deque)
 
     def test_initialization(self) -> None:
         # ARRANGE

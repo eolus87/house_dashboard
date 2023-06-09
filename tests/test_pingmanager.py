@@ -8,7 +8,7 @@ import pandas as pd
 
 # Third party libraries
 # Custom libraries
-from ping_classes.pingmanager import PingManager
+from labourers.leader import Leader
 
 
 class TestPingManager(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestPingManager(unittest.TestCase):
                 "localhost": {"ip": "127.0.0.1", "rate": 0.1},
                 "local_host": {"ip": "127.0.0.1", "rate": 0.1}},
                 "buffer_size": 10}}
-        self.ping_manager = PingManager(self.config)
+        self.ping_manager = Leader(self.config)
 
     def test_deque_instantiation(self) -> None:
         # ARRANGE

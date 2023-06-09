@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 # Custom libraries
 from labourers.leader import Leader
-from network_classes.devicetype import DeviceType
+from network.devicetype import DeviceType
 
 
 class PingDataExtractor:

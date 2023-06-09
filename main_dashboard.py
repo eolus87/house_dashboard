@@ -9,10 +9,11 @@ from dash.dependencies import Input, Output, State
 # Custom libraries
 from utilities.utilities import load_conf
 from labourers.leader import Leader
-from network_classes.ping_function import ping_function
-from network_classes.pingdataextractor import PingDataExtractor
-from network_classes.devicetype import DeviceType
-from energy_classes.power_function import power_function
+from network.ping_function import ping_function
+from network.pingdataextractor import PingDataExtractor
+from network.devicetype import DeviceType
+from power.power_function import power_function
+from control.control_functions import switch_on_function, switch_off_function
 
 # Configuration
 configuration_path = os.path.join("config", "config.yaml")
@@ -149,15 +150,20 @@ def stream_fig_energy(value):
     return fig
 
 
-@app.callback(
-    Output(component_id='output-container-button', component_property='children'),
-    [Input(component_id='button-example-1', component_property='n_clicks')],
-    [State('input-box', 'value')])
-def update_output(n_clicks, value):
-    return 'The input value was "{}" and the button has been clicked {} times'.format(
-        value,
-        n_clicks
-    )
+# @app.callback(
+#     Output(component_id='output-container-button', component_property='children'),
+#     [Input(component_id='button-example-1', component_property='n_clicks')],
+#     )
+# def update_output(n_clicks):
+#     if n_clicks is not None:
+#         if n_clicks % 2 == 0:
+#             switch_off_function("192.168.0.49")
+#         else:
+#             switch_on_function("192.168.0.49")
+#
+#     return 'The button has been clicked {} times'.format(
+#         n_clicks
+#     )
 
 
 app.run_server(host="0.0.0.0", port=8069, dev_tools_ui=True,  # debug=True,
