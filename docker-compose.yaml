@@ -1,0 +1,10 @@
+services:
+  homeserver:
+    container_name: homeserver_container
+    image: homeserver_image:v0.1
+    ports:
+      - "8069:8069"
+    volumes:
+      - type: bind
+        source: /home/nico/sambashare/logs
+        target: /usr/src/app/logs
