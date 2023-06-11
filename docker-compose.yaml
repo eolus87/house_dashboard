@@ -1,7 +1,8 @@
 services:
   homeserver:
     container_name: homeserver_container
-    image: homeserver_image:v0.1
+    image: homeserver:v0.1
+    restart: always
     ports:
       - "8069:8069"
     volumes:
