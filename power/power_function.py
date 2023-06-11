@@ -14,8 +14,12 @@ if os.name == 'nt':
 
 async def power_request(target: str) -> Tuple[float, str]:
     plug = kasa.SmartPlug(target)
-    await plug.update()
-    power = await plug.current_consumption()
+    try:
+        await plug.update()
+        power = await plug.current_consumption()
+    except Exception as inst:
+        print(f"Power request function failed with error: {inst}")
+        power = -1
     del plug
     return power, "W"
 

@@ -15,12 +15,14 @@ if os.name == 'nt':
 
 async def switch_on(target: str) -> bool:
     plug = kasa.SmartPlug(target)
-    await plug.turn_on()
-
-    time.sleep(0.1)
-
-    await plug.update()
-    is_successful = plug.is_on
+    try:
+        await plug.turn_on()
+        await asyncio.sleep(0.1)
+        await plug.update()
+        is_successful = plug.is_on
+    except Exception as inst:
+        print(f"Switch on function failed with error: {inst}")
+        is_successful = False
     del plug
     return is_successful
 
@@ -32,12 +34,14 @@ def switch_on_function(target: str) -> bool:
 
 async def switch_off(target: str) -> bool:
     plug = kasa.SmartPlug(target)
-    await plug.turn_off()
-
-    time.sleep(0.1)
-
-    await plug.update()
-    is_successful = plug.is_off
+    try:
+        await plug.turn_off()
+        await asyncio.sleep(0.1)
+        await plug.update()
+        is_successful = plug.is_off
+    except Exception as inst:
+        print(f"Switch off function failed with error: {inst}")
+        is_successful = False
     del plug
     return is_successful
 
