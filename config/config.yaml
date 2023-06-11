@@ -3,23 +3,23 @@ network:
     google:
       address: 8.8.8.8
       type: 1
-      rate: 2
+      rate: 0.5
     router:
       address: 192.168.0.1
       type: 1
-      rate: 2
+      rate: 0.5
     local_dns:
       address: 192.168.0.9
       type: 1
-      rate: 2
+      rate: 0.5
     pixel_6a:
-      address: 192.168.0.125
+      address: 192.168.0.128
       type: 2
-      rate: 2
+      rate: 0.5
     galaxy_A90:
       address: 192.168.0.127
       type: 2
-      rate: 2
+      rate: 0.5
 
   buffer_size: 1000
 
