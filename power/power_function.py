@@ -16,7 +16,7 @@ async def power_request(target: str) -> Tuple[float, str]:
     plug = kasa.SmartPlug(target)
     try:
         await plug.update()
-        power = await plug.current_consumption()
+        power = plug.emeter_realtime.power
     except Exception as inst:
         print(f"Power request function failed with error: {inst}")
         power = -1
