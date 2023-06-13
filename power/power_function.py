@@ -1,14 +1,14 @@
 __author__ = "Nicolas Gutierrez"
 
 # Standard libraries
-import os
+import platform
 import asyncio
 from typing import Tuple
 # Third party libraries
 import kasa
 # Custom libraries
 
-if os.name == 'nt':
+if platform.system() == 'Windows':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
