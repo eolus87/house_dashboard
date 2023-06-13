@@ -7,7 +7,7 @@ import pandas as pd
 from dash import Dash, dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 # Custom libraries
-from utilities.utilities import load_conf
+from utilities.utilities import load_yaml
 from labourers.leader import Leader
 from network.ping_function import ping_function
 from network.pingdataextractor import PingDataExtractor
@@ -19,7 +19,8 @@ from control.control_functions import switch_on_function, switch_off_function
 configuration_path = os.path.join("config", "config.yaml")
 pd.options.plotting.backend = "plotly"
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-configuration = load_conf(configuration_path)
+configuration = load_yaml(configuration_path)
+styles = load_yaml(os.path.join("assets", "styles.yaml"))
 
 # Initialization network
 ping_leader = Leader(configuration["network"], ping_function)
@@ -31,23 +32,6 @@ init_table = ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE,
 power_leader = Leader(configuration["energy"], power_function)
 power_leader.start()
 
-tabs_styles = {
-    'height': '44px'
-}
-tab_style = {
-    'borderBottom': '1px solid #d6d6d6',
-    'padding': '6px',
-    'fontWeight': 'bold'
-}
-
-tab_selected_style = {
-    'borderTop': '1px solid #d6d6d6',
-    'borderBottom': '1px solid #d6d6d6',
-    'backgroundColor': '#119DFF',
-    'color': 'white',
-    'padding': '6px'
-}
-
 # Dash layout
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(style={'backgroundColor': '#111111'},
@@ -56,59 +40,72 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
                                   style={'textAlign': 'center',
                                          'color': '#FFFFFF'}),
                           dcc.Tabs([
-                              dcc.Tab(label='Network', style=tab_style, selected_style=tab_selected_style, children=[
-                                  html.H2(children="Infrastructure ping [ms]",
-                                          style={'textAlign': 'center',
-                                                 'color': '#FFFFFF'}
+                              dcc.Tab(label='Network',
+                                      style=styles["tab_style"],
+                                      selected_style=styles["tab_selected_style"], children=[
+                                          html.H2(children="Infrastructure ping [ms]",
+                                                  style={'textAlign': 'center',
+                                                         'color': '#FFFFFF'}
+                                                  ),
+                                          dcc.Interval(
+                                              id='interval_refresh_network',
+                                              interval=1 * 2050,  # in milliseconds
+                                              n_intervals=0
                                           ),
-                                  dcc.Interval(
-                                      id='interval_refresh_network',
-                                      interval=1 * 2050,  # in milliseconds
-                                      n_intervals=0
-                                  ),
-                                  dcc.Graph(id='infrastructure_graph'),
+                                          dcc.Graph(id='infrastructure_graph'),
 
-                                  # Title and personal devices figure
-                                  html.H2(children="Personal devices ping [ms]",
-                                          style={'textAlign': 'center',
-                                                 'color': '#FFFFFF'}
+                                          # Title and personal devices figure
+                                          html.H2(children="Personal devices ping [ms]",
+                                                  style={'textAlign': 'center',
+                                                         'color': '#FFFFFF'}
+                                                  ),
+                                          html.Div(
+                                              dash_table.DataTable(data=init_table.to_dict('records'),
+                                                                   columns=[{"name": i, "id": i} for i in
+                                                                            init_table.columns],
+                                                                   style_cell={'textAlign': 'center',
+                                                                               'backgroundColor': '#111111',
+                                                                               'color': 'white',
+                                                                               'font_size': '20px'},
+                                                                   style_header={'border': '1px solid black',
+                                                                                 'font_size': '30px'},
+                                                                   style_as_list_view=True,
+                                                                   id='tbl')
                                           ),
-                                  html.Div(
-                                      dash_table.DataTable(data=init_table.to_dict('records'),
-                                                           columns=[{"name": i, "id": i} for i in init_table.columns],
-                                                           style_cell={'textAlign': 'center',
-                                                                       'backgroundColor': '#111111',
-                                                                       'color': 'white',
-                                                                       'font_size': '20px'},
-                                                           style_header={'border': '1px solid black',
-                                                                         'font_size': '30px'},
-                                                           style_as_list_view=True,
-                                                           id='tbl')
-                                  ),
+                                        ]),
+                              dcc.Tab(label='Energy',
+                                      style=styles["tab_style"],
+                                      selected_style=styles["tab_selected_style"], children=[
+                                          html.H2(children="Energy [W]",
+                                                  style={'textAlign': 'center',
+                                                         'color': '#FFFFFF'}
+                                                  ),
+                                          dcc.Interval(
+                                              id='interval_refresh_energy',
+                                              interval=1 * 2050,  # in milliseconds
+                                              n_intervals=0
+                                          ),
+                                          dcc.Graph(id='energy_graph'),
+                                        ]),
+                              dcc.Tab(label='Temperature',
+                                      style=styles["tab_style"],
+                                      selected_style=styles["tab_selected_style"],
+                                      children=[]),
 
-                                  # Button
-                                  html.Button('Submit',
-                                              id='button-example-1'),
-                                  html.Div(id='output-container-button',
-                                           children='Enter a value and press submit',
-                                           style={'color': '#FFFFFF'}
-                                           )
-                              ]),
-                              dcc.Tab(label='Energy', style=tab_style, selected_style=tab_selected_style, children=[
-                                  html.H2(children="Energy [W]",
-                                          style={'textAlign': 'center',
-                                                 'color': '#FFFFFF'}
-                                          ),
-                                  dcc.Interval(
-                                      id='interval_refresh_energy',
-                                      interval=1 * 2050,  # in milliseconds
-                                      n_intervals=0
-                                  ),
-                                  dcc.Graph(id='energy_graph'),
-                              ]),
-                              dcc.Tab(label='Temperature', style=tab_style, selected_style=tab_selected_style, children=[]),
+                              dcc.Tab(label='Control',
+                                      style=styles["tab_style"],
+                                      selected_style=styles["tab_selected_style"], children=[
+                                          # Button
+                                          html.Button('Printer',
+                                                      id='button-example-1'),
+                                          html.Div(id='output-container-button',
+                                                   children='Enter a value and press submit',
+                                                   style={'color': '#FFFFFF'}
+                                                   )
+                                      ]),
+
+
                           ])
-
 
                       ])
 
@@ -150,20 +147,20 @@ def stream_fig_energy(value):
     return fig
 
 
-# @app.callback(
-#     Output(component_id='output-container-button', component_property='children'),
-#     [Input(component_id='button-example-1', component_property='n_clicks')],
-#     )
-# def update_output(n_clicks):
-#     if n_clicks is not None:
-#         if n_clicks % 2 == 0:
-#             switch_off_function("192.168.0.49")
-#         else:
-#             switch_on_function("192.168.0.49")
-#
-#     return 'The button has been clicked {} times'.format(
-#         n_clicks
-#     )
+@app.callback(
+    Output(component_id='output-container-button', component_property='children'),
+    [Input(component_id='button-example-1', component_property='n_clicks')],
+    )
+def update_output(n_clicks):
+    if n_clicks is not None:
+        if n_clicks % 2 == 0:
+            switch_off_function("192.168.0.49")
+        else:
+            switch_on_function("192.168.0.49")
+
+    return 'The button has been clicked {} times'.format(
+        n_clicks
+    )
 
 
 app.run_server(host="0.0.0.0", port=8069, dev_tools_ui=True,  # debug=True,
