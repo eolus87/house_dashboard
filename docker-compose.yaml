@@ -7,5 +7,8 @@ services:
       - "8069:8069"
     volumes:
       - type: bind
-        source: /home/nico/sambashare/logs
+        source: /home/nico/sambashare/homeserver/logs
         target: /usr/src/app/logs
+      - type: bind
+        source: /home/nico/sambashare/homeserver/config
+        target: /usr/src/app/config
