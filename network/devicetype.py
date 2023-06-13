@@ -9,4 +9,3 @@ from enum import IntEnum
 class DeviceType(IntEnum):
     INFRASTRUCTURE = 1
     PERSONAL_DEVICE = 2
-    PLUG = 3
