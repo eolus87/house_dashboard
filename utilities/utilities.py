@@ -7,12 +7,12 @@ import yaml
 # Custom libraries
 
 
-def load_conf(config_file: Union[str, dict]) -> dict:
-    if isinstance(config_file, str):
-        with open(config_file, "r") as f:
+def load_yaml(file_path_or_dict: Union[str, dict]) -> dict:
+    if isinstance(file_path_or_dict, str):
+        with open(file_path_or_dict, "r") as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
-    elif isinstance(config_file, dict):
-        config = config_file
+    elif isinstance(file_path_or_dict, dict):
+        config = file_path_or_dict
     else:
-        raise TypeError("Config file should be a path to a yaml config or a dictionary.")
+        raise TypeError("File should be a path to a yaml config or a dictionary.")
     return config
