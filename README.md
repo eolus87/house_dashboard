@@ -1,6 +1,6 @@
-# network_tools repo
+# house_dashboard repo
 ## Introduction
-Network tools is a dashboard based application that queries different sensors and display the 
+It is a dashboard based application that queries different sensors and display the 
 temporal signal in charts. The dashboard is composed of 4 tabs:
 
 - Network: This tab is about pinging different servers, from local ones to others online.
