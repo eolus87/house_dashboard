@@ -10,6 +10,7 @@ python-kasa = "*"
 dash = "*"
 pandas = "*"
 numpy = "*"
+psycopg2 = "*"
 
 [dev-packages]
 
