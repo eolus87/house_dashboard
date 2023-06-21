@@ -6,10 +6,9 @@ import os
 import pandas as pd
 from dash import Dash, dcc, html, dash_table
 from dash.dependencies import Input, Output, State
+import psycopg2
 # Custom libraries
 from utilities.utilities import load_yaml
-from labourers.leader import Leader
-from network.ping_function import ping_function
 from network.pingdataextractor import PingDataExtractor
 from network.devicetype import DeviceType
 from power.power_function import power_function
@@ -22,10 +21,17 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 configuration = load_yaml(configuration_path)
 styles = load_yaml(os.path.join("assets", "styles.yaml"))
 
+# Database connection
+db_config = configuration["postgresql"]
+conn = psycopg2.connect(
+    host=db_config["ip"],
+    port=db_config["port"],
+    user=db_config["user"],
+    password=db_config["password"])
+conn.autocommit = True
+
 # Initialization network
-ping_leader = Leader(configuration["network"], ping_function)
-ping_leader.start()
-ping_data_extractor = PingDataExtractor(configuration["network"], ping_leader)
+ping_data_extractor = PingDataExtractor(configuration, conn)
 init_table = ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 10)
 
 # Initialization energy
@@ -116,10 +122,10 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
     Input(component_id='interval_refresh_network', component_property="n_intervals")
 )
 def stream_fig_network(value):
-    df = ping_data_extractor.retrieve_ping_data(DeviceType.INFRASTRUCTURE)
-    fig = df.plot(template='plotly_dark')
+    network_df = ping_data_extractor.retrieve_ping_data(DeviceType.INFRASTRUCTURE)
+    fig = network_df.astype("float").interpolate("linear").plot(template="plotly_dark")
     fig.update_layout(
-        xaxis_title="Samples [-]",
+        xaxis_title="Time",
         yaxis_title="Ping [ms]",
     )
     return fig
@@ -130,7 +136,7 @@ def stream_fig_network(value):
     Input(component_id='interval_refresh_network', component_property="n_intervals")
 )
 def stream_table(value):
-    return ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 10).to_dict('records')
+    return ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 20).to_dict('records')
 
 
 # @app.callback(
