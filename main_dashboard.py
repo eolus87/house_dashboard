@@ -6,6 +6,7 @@ import os
 import pandas as pd
 from dash import Dash, dcc, html, dash_table
 from dash.dependencies import Input, Output, State
+import plotly.graph_objects as go
 import psycopg2
 # Custom libraries
 from utilities.utilities import load_yaml
@@ -42,7 +43,7 @@ init_table = ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE,
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(style={'backgroundColor': '#111111'},
                       children=[
-                          html.H1(children="Home Server",
+                          html.H1(children="House Dashboard",
                                   style={'textAlign': 'center',
                                          'color': '#FFFFFF'}),
                           dcc.Tabs([
@@ -122,11 +123,16 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
     Input(component_id='interval_refresh_network', component_property="n_intervals")
 )
 def stream_fig_network(value):
-    network_df = ping_data_extractor.retrieve_ping_data(DeviceType.INFRASTRUCTURE)
-    fig = network_df.astype("float").interpolate("linear").plot(template="plotly_dark")
+    dfs_dict = ping_data_extractor.retrieve_ping_data(DeviceType.INFRASTRUCTURE, 2)
+    fig = go.Figure()
+    # plot the data
+    for df_index, df_name in enumerate(dfs_dict):
+        fig.add_trace(go.Scatter(x=dfs_dict[df_name].index, y=dfs_dict[df_name]["value"],
+                                 name=df_name))
     fig.update_layout(
         xaxis_title="Time",
         yaxis_title="Ping [ms]",
+        template="plotly_dark"
     )
     return fig
 
@@ -136,7 +142,7 @@ def stream_fig_network(value):
     Input(component_id='interval_refresh_network', component_property="n_intervals")
 )
 def stream_table(value):
-    return ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 20).to_dict('records')
+    return ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 0.02).to_dict('records')
 
 
 # @app.callback(
@@ -168,6 +174,14 @@ def stream_table(value):
 #         n_clicks
 #     )
 
+try:
+    app.run_server(host="0.0.0.0", port=8069, dev_tools_ui=True,  # debug=True,
+                   dev_tools_hot_reload=True, threaded=True)
 
-app.run_server(host="0.0.0.0", port=8069, dev_tools_ui=True,  # debug=True,
-               dev_tools_hot_reload=True, threaded=True)
+except KeyboardInterrupt as keyinterrupt:
+    print(f"Exiting gracefully")
+    conn.close()
+
+except Exception as inst:
+    print(f"Exception registered: {inst}")
+    conn.close()
