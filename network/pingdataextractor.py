@@ -1,21 +1,20 @@
 __author__ = "Nicolas Gutierrez"
 
 # Standard libraries
-from typing import Dict, List
+from typing import Dict, List, Tuple
 # Third party libraries
 import pandas as pd
-import numpy as np
 from psycopg2.extensions import connection
 # Custom libraries
 from network.devicetype import DeviceType
 
-db_query = (
+db_query_time = (
     """
-    SELECT time_stamp, value FROM {table_name}
+    SELECT time_stamp, target, value FROM {table_name}
     WHERE type = 'ping' 
-    and target = '{target}' 
-    and time_stamp::timestamp >= 'now'::timestamp - '{hours_to_display} hour'::interval
-    order by time_stamp::timestamp ASC
+    AND target IN {target} 
+    AND time_stamp::timestamp >= 'now'::timestamp - '{hours_to_display} hour'::interval
+    ORDER BY time_stamp::timestamp ASC
     """
 )
 
@@ -31,34 +30,34 @@ class PingDataExtractor:
 
         self.__group_name = "network"
         self.__network_sensors = config[self.__group_name]["devices"]
-        self.__display_past_hours = config[self.__group_name]["display_past_hours"]
 
         self.__db_connection = conn
 
         self.__ping_availability_threshold = 1000
 
-    def retrieve_ping_data(self, device_type: DeviceType) -> pd.DataFrame:
-        results = pd.DataFrame()
-        cur = self.__db_connection.cursor()
-        for device in self.__network_sensors:
-            if int(self.__network_sensors[device]["type"]) == device_type:
-                query = db_query.format(
-                    table_name=self.__db_table_name,
-                    target=self.__network_sensors[device]['address'],
-                    hours_to_display=self.__display_past_hours
-                )
-                cur.execute(query)
-                records = cur.fetchall()
-                records_df = pd.DataFrame(records, columns=["Time", device])
-                records_df.set_index("Time", inplace=True)
-                results = results.join(records_df, how="outer")
-        return results
+    def retrieve_ping_data(self, device_type: DeviceType, past_time_hours: float) -> Dict:
+        # Obtaining the required targets for the Query
+        devices_ip, devices_name = self.__devices_details(device_type)
 
-    def retrieve_ping_stats(self, device_type: DeviceType, length: int) -> pd.DataFrame:
-        network_df = self.retrieve_ping_data(device_type)
-        devices_list = network_df.columns.to_list()
-        mean_list = network_df.astype("float").tail(length).mean().round(0).to_numpy()
-        std_list = network_df.astype("float").tail(length).std().round(0).to_numpy()
+        # Querying
+        records = self.__query_execution(self.__db_table_name, devices_ip, past_time_hours)
+
+        # Query operations
+        dict_of_dfs = dict()
+        for i in range(len(devices_ip)):
+            df_per_device = records[records["target"] == devices_ip[i]].copy(deep=True)
+            df_per_device.dropna(inplace=True)
+            df_per_device.drop(columns=["target"], inplace=True)
+            dict_of_dfs[devices_name[i]] = df_per_device
+        return dict_of_dfs
+
+    def retrieve_ping_stats(self, device_type: DeviceType, past_time_hours: float) -> pd.DataFrame:
+        # Obtaining the required targets for the Query
+        dict_of_dfs = self.retrieve_ping_data(device_type, past_time_hours)
+
+        devices_list = list(dict_of_dfs.keys())
+        mean_list = [df["value"].astype("float").mean().round(0) for df in dict_of_dfs.values()]
+        std_list = [df["value"].astype("float").std().round(0) for df in dict_of_dfs.values()]
         available = []
         for x in mean_list:
             if x > self.__ping_availability_threshold:
@@ -73,3 +72,28 @@ class PingDataExtractor:
         data_as_pd = pd.DataFrame(data_as_dict)
 
         return data_as_pd
+
+    def __query_execution(self, table_name: str, devices_ip: List[str], hours_to_retrieve: float) -> pd.DataFrame:
+        cur = self.__db_connection.cursor()
+
+        query = db_query_time.format(
+            table_name=table_name,
+            target=tuple(devices_ip),
+            hours_to_display=hours_to_retrieve
+        )
+        cur.execute(query)
+        records = cur.fetchall()
+
+        records_df = pd.DataFrame(records, columns=["time", "target", "value"])
+        records_df.set_index("time", inplace=True)
+
+        return records_df
+
+    def __devices_details(self, device_type: DeviceType) -> Tuple[List[str], List[str]]:
+        devices_ip = []
+        devices_name = []
+        for device in self.__network_sensors:
+            if int(self.__network_sensors[device]["type"]) == device_type:
+                devices_ip.append(self.__network_sensors[device]['address'])
+                devices_name.append(device)
+        return devices_ip, devices_name
