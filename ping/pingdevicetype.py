@@ -6,6 +6,6 @@ from enum import IntEnum
 # Custom libraries
 
 
-class DeviceType(IntEnum):
+class PingDeviceType(IntEnum):
     INFRASTRUCTURE = 1
     PERSONAL_DEVICE = 2
