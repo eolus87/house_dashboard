@@ -6,12 +6,12 @@ from typing import Dict, List, Tuple
 import pandas as pd
 from psycopg2.extensions import connection
 # Custom libraries
-from network.devicetype import DeviceType
+from ping.devicetype import DeviceType
 
 db_query_time = (
     """
     SELECT time_stamp, target, value FROM {table_name}
-    WHERE type = 'ping' 
+    WHERE type = {group_name} 
     AND target IN {target} 
     AND time_stamp::timestamp >= 'now'::timestamp - '{hours_to_display} hour'::interval
     ORDER BY time_stamp::timestamp ASC
@@ -19,8 +19,8 @@ db_query_time = (
 )
 
 
-class PingDataExtractor:
-    def __init__(self, config: Dict, conn: connection) -> None:
+class DataExtractor:
+    def __init__(self, config: Dict, group_name: str, conn: connection) -> None:
         self.__db_config_name = "postgresql"
         self.__db_ip = config[self.__db_config_name]["ip"]
         self.__db_port = config[self.__db_config_name]["port"]
@@ -28,7 +28,7 @@ class PingDataExtractor:
         self.__db_password = config[self.__db_config_name]["user"]
         self.__db_table_name = config[self.__db_config_name]["table_name"]
 
-        self.__group_name = "network"
+        self.__group_name = group_name
         self.__network_sensors = config[self.__group_name]["devices"]
 
         self.__db_connection = conn
@@ -78,6 +78,7 @@ class PingDataExtractor:
 
         query = db_query_time.format(
             table_name=table_name,
+            group_name=self.__group_name,
             target=tuple(devices_ip),
             hours_to_display=hours_to_retrieve
         )
