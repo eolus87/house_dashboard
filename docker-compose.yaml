@@ -1,14 +1,14 @@
 services:
-  homeserver:
-    container_name: homeserver_container
-    image: homeserver:v0.1
+  housedashboard:
+    container_name: housedashboard_container
+    image: housedashboard:v0.1
     restart: always
     ports:
       - "8069:8069"
     volumes:
       - type: bind
-        source: /home/nico/sambashare/homeserver/logs
+        source: /home/nico/sambashare/housedashboard/logs
         target: /usr/src/app/logs
       - type: bind
-        source: /home/nico/sambashare/homeserver/config
+        source: /home/nico/sambashare/housedashboard/config
         target: /usr/src/app/config
