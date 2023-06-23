@@ -28,14 +28,14 @@ ping_tab = dcc.Tab(label='Ping',
                         ),
 
                         # Title and Graph
-                        html.H2(children="Infrastructure ping [ms]",
+                        html.H2(children="Infrastructure [ms]",
                                 style={'textAlign': 'center',
                                        'color': '#FFFFFF'}
                                 ),
                         dcc.Graph(id='infrastructure_graph'),
 
                         # Title and Table
-                        html.H2(children="Personal devices ping [ms]",
+                        html.H2(children="Personal devices [ms]",
                                 style={'textAlign': 'center',
                                        'color': '#FFFFFF'}
                                 ),

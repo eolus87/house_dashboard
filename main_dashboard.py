@@ -53,26 +53,7 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
                           dcc.Tabs([
                               ping_tab,
                               power_tab
-                              # dcc.Tab(label='Temperature',
-                              #         style=styles["tab_style"],
-                              #         selected_style=styles["tab_selected_style"],
-                              #         children=[]),
-                              #
-                              # dcc.Tab(label='Control',
-                              #         style=styles["tab_style"],
-                              #         selected_style=styles["tab_selected_style"], children=[
-                              #             # Button
-                              #             html.Button('Printer',
-                              #                         id='button-example-1'),
-                              #             html.Div(id='output-container-button',
-                              #                      children='Enter a value and press submit',
-                              #                      style={'color': '#FFFFFF'}
-                              #                      )
-                              #         ]),
-
-
                           ])
-
                       ])
 
 
@@ -82,14 +63,17 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
     Input(component_id='interval_refresh_ping', component_property="n_intervals")
 )
 def stream_fig_network(value):
-    dfs_dict = ping_data_extractor.retrieve_data(PingDeviceType.INFRASTRUCTURE, hours_to_display)
+    # Retrieve data
+    dfs_dict = ping_data_extractor.retrieve_data(
+        PingDeviceType.INFRASTRUCTURE,
+        hours_to_display)
     fig = go.Figure()
-    # plot the data
+    # Plot
     for df_index, df_name in enumerate(dfs_dict):
         fig.add_trace(go.Scatter(x=dfs_dict[df_name].index, y=dfs_dict[df_name]["value"],
                                  name=df_name))
     fig.update_layout(
-        xaxis_title="Time",
+        xaxis_title="Date and Time",
         yaxis_title="Ping [ms]",
         template="plotly_dark"
     )
@@ -101,7 +85,9 @@ def stream_fig_network(value):
     Input(component_id='interval_refresh_ping', component_property="n_intervals")
 )
 def stream_table(value):
-    return ping_data_extractor.retrieve_stats(PingDeviceType.PERSONAL_DEVICE, hours_for_tables).to_dict('records')
+    return ping_data_extractor.retrieve_stats(
+        PingDeviceType.PERSONAL_DEVICE,
+        hours_for_tables).to_dict('records')
 
 
 @app.callback(
@@ -109,14 +95,17 @@ def stream_table(value):
     Input(component_id='interval_refresh_power', component_property="n_intervals")
 )
 def stream_fig_power(value):
-    dfs_dict = power_data_extractor.retrieve_data(PowerDeviceType.PLUG, hours_to_display)
+    # Retrieve data
+    dfs_dict = power_data_extractor.retrieve_data(
+        PowerDeviceType.PLUG,
+        hours_to_display)
     fig = go.Figure()
-    # plot the data
+    # Plot
     for df_index, df_name in enumerate(dfs_dict):
         fig.add_trace(go.Scatter(x=dfs_dict[df_name].index, y=dfs_dict[df_name]["value"],
                                  name=df_name))
     fig.update_layout(
-        xaxis_title="Time",
+        xaxis_title="Date and Time",
         yaxis_title="Power [W]",
         template="plotly_dark"
     )
