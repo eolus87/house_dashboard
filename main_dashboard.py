@@ -4,23 +4,30 @@ __author__ = "Nicolas Gutierrez"
 import os
 # Third party libraries
 import pandas as pd
-from dash import Dash, dcc, html, dash_table
-from dash.dependencies import Input, Output, State
+from dash import Dash, dcc, html
+from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import psycopg2
 # Custom libraries
 from utilities.utilities import load_yaml
-from network.pingdataextractor import PingDataExtractor
-from network.devicetype import DeviceType
-from power.power_function import power_function
-from control.control_functions import switch_on_function, switch_off_function
+from datahandling.dataextractor import DataExtractor
+from ping.pingdevicetype import PingDeviceType
+from power.powerdevicetype import PowerDeviceType
+from layout.ping_tab import ping_tab
+from layout.power_tab import power_tab
 
-# Configuration
+# User configuration
 configuration_path = os.path.join("config", "config.yaml")
+
+# Style
 pd.options.plotting.backend = "plotly"
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+
+# Configuration
 configuration = load_yaml(configuration_path)
-styles = load_yaml(os.path.join("assets", "styles.yaml"))
+hours_to_display = configuration["hours_to_display"]
+hours_for_tables = configuration["hours_for_tables"]
 
 # Database connection
 db_config = configuration["postgresql"]
@@ -29,15 +36,12 @@ conn = psycopg2.connect(
     port=db_config["port"],
     user=db_config["user"],
     password=db_config["password"])
-conn.autocommit = True
 
-# Initialization network
-ping_data_extractor = PingDataExtractor(configuration, conn)
-init_table = ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 10)
+# Initialization ping
+ping_data_extractor = DataExtractor(configuration, "ping", conn)
 
 # Initialization energy
-# power_leader = Leader(configuration["energy"], power_function)
-# power_leader.start()
+power_data_extractor = DataExtractor(configuration, "power", conn)
 
 # Dash layout
 app = Dash(__name__, external_stylesheets=external_stylesheets)
@@ -47,53 +51,8 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
                                   style={'textAlign': 'center',
                                          'color': '#FFFFFF'}),
                           dcc.Tabs([
-                              dcc.Tab(label='Network',
-                                      style=styles["tab_style"],
-                                      selected_style=styles["tab_selected_style"], children=[
-                                          html.H2(children="Infrastructure ping [ms]",
-                                                  style={'textAlign': 'center',
-                                                         'color': '#FFFFFF'}
-                                                  ),
-                                          dcc.Interval(
-                                              id='interval_refresh_network',
-                                              interval=1 * 2050,  # in milliseconds
-                                              n_intervals=0
-                                          ),
-                                          dcc.Graph(id='infrastructure_graph'),
-
-                                          # Title and personal devices figure
-                                          html.H2(children="Personal devices ping [ms]",
-                                                  style={'textAlign': 'center',
-                                                         'color': '#FFFFFF'}
-                                                  ),
-                                          html.Div(
-                                              dash_table.DataTable(data=init_table.to_dict('records'),
-                                                                   columns=[{"name": i, "id": i} for i in
-                                                                            init_table.columns],
-                                                                   style_cell={'textAlign': 'center',
-                                                                               'backgroundColor': '#111111',
-                                                                               'color': 'white',
-                                                                               'font_size': '20px'},
-                                                                   style_header={'border': '1px solid black',
-                                                                                 'font_size': '30px'},
-                                                                   style_as_list_view=True,
-                                                                   id='tbl')
-                                          ),
-                                        ]),
-                              # dcc.Tab(label='Energy',
-                              #         style=styles["tab_style"],
-                              #         selected_style=styles["tab_selected_style"], children=[
-                              #             html.H2(children="Energy [W]",
-                              #                     style={'textAlign': 'center',
-                              #                            'color': '#FFFFFF'}
-                              #                     ),
-                              #             dcc.Interval(
-                              #                 id='interval_refresh_energy',
-                              #                 interval=1 * 2050,  # in milliseconds
-                              #                 n_intervals=0
-                              #             ),
-                              #             dcc.Graph(id='energy_graph'),
-                              #           ]),
+                              ping_tab,
+                              power_tab
                               # dcc.Tab(label='Temperature',
                               #         style=styles["tab_style"],
                               #         selected_style=styles["tab_selected_style"],
@@ -120,10 +79,10 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
 # Callbacks
 @app.callback(
     Output(component_id='infrastructure_graph', component_property='figure'),
-    Input(component_id='interval_refresh_network', component_property="n_intervals")
+    Input(component_id='interval_refresh_ping', component_property="n_intervals")
 )
 def stream_fig_network(value):
-    dfs_dict = ping_data_extractor.retrieve_ping_data(DeviceType.INFRASTRUCTURE, 2)
+    dfs_dict = ping_data_extractor.retrieve_data(PingDeviceType.INFRASTRUCTURE, hours_to_display)
     fig = go.Figure()
     # plot the data
     for df_index, df_name in enumerate(dfs_dict):
@@ -138,27 +97,32 @@ def stream_fig_network(value):
 
 
 @app.callback(
-    Output(component_id='tbl', component_property='data'),
-    Input(component_id='interval_refresh_network', component_property="n_intervals")
+    Output(component_id='personal_devices_table', component_property='data'),
+    Input(component_id='interval_refresh_ping', component_property="n_intervals")
 )
 def stream_table(value):
-    return ping_data_extractor.retrieve_ping_stats(DeviceType.PERSONAL_DEVICE, 0.02).to_dict('records')
+    return ping_data_extractor.retrieve_stats(PingDeviceType.PERSONAL_DEVICE, hours_for_tables).to_dict('records')
 
 
-# @app.callback(
-#     Output(component_id='energy_graph', component_property='figure'),
-#     Input(component_id='interval_refresh_energy', component_property="n_intervals")
-# )
-# def stream_fig_energy(value):
-#     df = power_leader.target_deque
-#     fig = df.plot(template='plotly_dark')
-#     fig.update_layout(
-#         xaxis_title="Samples [-]",
-#         yaxis_title="Energy [W]",
-#     )
-#     return fig
-#
-#
+@app.callback(
+    Output(component_id='power_graph', component_property='figure'),
+    Input(component_id='interval_refresh_power', component_property="n_intervals")
+)
+def stream_fig_power(value):
+    dfs_dict = power_data_extractor.retrieve_data(PowerDeviceType.PLUG, hours_to_display)
+    fig = go.Figure()
+    # plot the data
+    for df_index, df_name in enumerate(dfs_dict):
+        fig.add_trace(go.Scatter(x=dfs_dict[df_name].index, y=dfs_dict[df_name]["value"],
+                                 name=df_name))
+    fig.update_layout(
+        xaxis_title="Time",
+        yaxis_title="Power [W]",
+        template="plotly_dark"
+    )
+    return fig
+
+
 # @app.callback(
 #     Output(component_id='output-container-button', component_property='children'),
 #     [Input(component_id='button-example-1', component_property='n_clicks')],
