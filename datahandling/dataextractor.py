@@ -6,12 +6,11 @@ from typing import Dict, List, Tuple
 import pandas as pd
 from psycopg2.extensions import connection
 # Custom libraries
-from ping.devicetype import DeviceType
 
 db_query_time = (
     """
     SELECT time_stamp, target, value FROM {table_name}
-    WHERE type = {group_name} 
+    WHERE type = '{group_name}'
     AND target IN {target} 
     AND time_stamp::timestamp >= 'now'::timestamp - '{hours_to_display} hour'::interval
     ORDER BY time_stamp::timestamp ASC
@@ -35,7 +34,7 @@ class DataExtractor:
 
         self.__ping_availability_threshold = 1000
 
-    def retrieve_ping_data(self, device_type: DeviceType, past_time_hours: float) -> Dict:
+    def retrieve_data(self, device_type: int, past_time_hours: float) -> Dict:
         # Obtaining the required targets for the Query
         devices_ip, devices_name = self.__devices_details(device_type)
 
@@ -51,9 +50,9 @@ class DataExtractor:
             dict_of_dfs[devices_name[i]] = df_per_device
         return dict_of_dfs
 
-    def retrieve_ping_stats(self, device_type: DeviceType, past_time_hours: float) -> pd.DataFrame:
+    def retrieve_stats(self, device_type: int, past_time_hours: float) -> pd.DataFrame:
         # Obtaining the required targets for the Query
-        dict_of_dfs = self.retrieve_ping_data(device_type, past_time_hours)
+        dict_of_dfs = self.retrieve_data(device_type, past_time_hours)
 
         devices_list = list(dict_of_dfs.keys())
         mean_list = [df["value"].astype("float").mean().round(0) for df in dict_of_dfs.values()]
@@ -66,8 +65,8 @@ class DataExtractor:
                 available.append(True)
 
         data_as_dict = {"Device": devices_list,
-                        "Mean [ms]": mean_list,
-                        "Std [ms]": std_list,
+                        "Mean": mean_list,
+                        "Std": std_list,
                         "Available": available}
         data_as_pd = pd.DataFrame(data_as_dict)
 
@@ -79,7 +78,7 @@ class DataExtractor:
         query = db_query_time.format(
             table_name=table_name,
             group_name=self.__group_name,
-            target=tuple(devices_ip),
+            target=tuple(devices_ip).__str__().replace(",)", ")"),
             hours_to_display=hours_to_retrieve
         )
         cur.execute(query)
@@ -90,7 +89,7 @@ class DataExtractor:
 
         return records_df
 
-    def __devices_details(self, device_type: DeviceType) -> Tuple[List[str], List[str]]:
+    def __devices_details(self, device_type: int) -> Tuple[List[str], List[str]]:
         devices_ip = []
         devices_name = []
         for device in self.__network_sensors:
