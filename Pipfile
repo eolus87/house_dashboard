@@ -11,6 +11,7 @@ dash = "*"
 pandas = "*"
 numpy = "*"
 psycopg2 = "*"
+dash-daq = "*"
 
 [dev-packages]
 
