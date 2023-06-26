@@ -7,11 +7,13 @@ import pandas as pd
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
-import psycopg2
+import numpy as np
 # Custom libraries
 from utilities.utilities import load_yaml
+from datahandling.postgresqlinterface import PostGreSqlInterface
 from datahandling.dataextractor import DataExtractor
 from ping.pingdevicetype import PingDeviceType
+from ping.pingfunctions import calculate_stats, calculate_histogram, calculate_downtime
 from power.powerdevicetype import PowerDeviceType
 from layout.ping_tab import ping_tab
 from layout.power_tab import power_tab
@@ -23,25 +25,19 @@ configuration_path = os.path.join("config", "config.yaml")
 pd.options.plotting.backend = "plotly"
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-
-# Configuration
+# Code Configuration
 configuration = load_yaml(configuration_path)
-hours_to_display = configuration["hours_to_display"]
-hours_for_tables = configuration["hours_for_tables"]
 
-# Database connection
-db_config = configuration["postgresql"]
-conn = psycopg2.connect(
-    host=db_config["ip"],
-    port=db_config["port"],
-    user=db_config["user"],
-    password=db_config["password"])
+# Querier
+querier = PostGreSqlInterface(configuration["postgresql"])
 
 # Initialization ping
-ping_data_extractor = DataExtractor(configuration, "ping", conn)
+sensor_type = "ping"
+ping_data_extractor = DataExtractor(sensor_type, configuration[sensor_type], querier)
 
 # Initialization energy
-power_data_extractor = DataExtractor(configuration, "power", conn)
+sensor_type = "power"
+power_data_extractor = DataExtractor(sensor_type, configuration[sensor_type], querier)
 
 # Dash layout
 app = Dash(__name__, external_stylesheets=external_stylesheets)
@@ -57,6 +53,41 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
                       ])
 
 
+@app.callback(
+    Output(component_id='device_ping_distribution_graph', component_property='figure'),
+    Input(component_id='interval_refresh_ping_slow', component_property="n_intervals")
+)
+def stream_fig_internet(value):
+    # Retrieve data
+    sensor_name = "google"
+    dfs_dict = ping_data_extractor.retrieve_sensors_data([sensor_name], 24)
+    list_of_histogram_pds = calculate_histogram(dfs_dict)
+    fig = go.Figure()
+    # Plot
+    for (values, bins) in list_of_histogram_pds:
+        bins_average = np.average(np.diff(bins))
+        fig.add_trace(go.Bar(x=bins[:-1]-bins_average/2, y=values, name=sensor_name))
+    fig.update_layout(
+        xaxis_title="Ping [ms]",
+        yaxis_title="Number of values",
+        template="plotly_dark",
+        margin=dict(t=5, b=5),
+    )
+    return fig
+
+
+@app.callback(
+    Output(component_id='downtime_led', component_property='value'),
+    Input(component_id='interval_refresh_ping_slow', component_property="n_intervals")
+)
+def update_led(value):
+    # Retrieve data
+    sensor_name = "google"
+    dfs_dict = ping_data_extractor.retrieve_sensors_data([sensor_name], 24)
+    list_of_downtime = calculate_downtime(dfs_dict)
+    return np.around(list_of_downtime[0], 1)
+
+
 # Callbacks
 @app.callback(
     Output(component_id='infrastructure_graph', component_property='figure'),
@@ -64,9 +95,9 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
 )
 def stream_fig_network(value):
     # Retrieve data
-    dfs_dict = ping_data_extractor.retrieve_data(
-        PingDeviceType.INFRASTRUCTURE,
-        hours_to_display)
+    dfs_dict = ping_data_extractor.retrieve_type_data(
+        [PingDeviceType.INFRASTRUCTURE],
+        configuration["hours_to_display"])
     fig = go.Figure()
     # Plot
     for df_index, df_name in enumerate(dfs_dict):
@@ -75,7 +106,9 @@ def stream_fig_network(value):
     fig.update_layout(
         xaxis_title="Date and Time",
         yaxis_title="Ping [ms]",
-        template="plotly_dark"
+        template="plotly_dark",
+        margin=dict(t=5, b=5),
+        yaxis={"rangemode": "nonnegative"}
     )
     return fig
 
@@ -85,9 +118,12 @@ def stream_fig_network(value):
     Input(component_id='interval_refresh_ping', component_property="n_intervals")
 )
 def stream_table(value):
-    return ping_data_extractor.retrieve_stats(
-        PingDeviceType.PERSONAL_DEVICE,
-        hours_for_tables).to_dict('records')
+    dict_of_dfs = ping_data_extractor.retrieve_type_data(
+        [PingDeviceType.PERSONAL_DEVICE],
+        configuration["hours_for_tables"])
+    table = calculate_stats(dict_of_dfs)
+
+    return table.to_dict('records')
 
 
 @app.callback(
@@ -96,9 +132,9 @@ def stream_table(value):
 )
 def stream_fig_power(value):
     # Retrieve data
-    dfs_dict = power_data_extractor.retrieve_data(
-        PowerDeviceType.PLUG,
-        hours_to_display)
+    dfs_dict = power_data_extractor.retrieve_type_data(
+        [PowerDeviceType.PLUG],
+        configuration["hours_to_display"])
     fig = go.Figure()
     # Plot
     for df_index, df_name in enumerate(dfs_dict):
@@ -107,7 +143,9 @@ def stream_fig_power(value):
     fig.update_layout(
         xaxis_title="Date and Time",
         yaxis_title="Power [W]",
-        template="plotly_dark"
+        template="plotly_dark",
+        margin=dict(t=5, b=5),
+        yaxis={"rangemode": "nonnegative"}
     )
     return fig
 
@@ -127,14 +165,5 @@ def stream_fig_power(value):
 #         n_clicks
 #     )
 
-try:
-    app.run_server(host="0.0.0.0", port=8069, dev_tools_ui=True,  # debug=True,
-                   dev_tools_hot_reload=True, threaded=True)
-
-except KeyboardInterrupt as keyinterrupt:
-    print(f"Exiting gracefully")
-    conn.close()
-
-except Exception as inst:
-    print(f"Exception registered: {inst}")
-    conn.close()
+app.run_server(host="0.0.0.0", port=8069, dev_tools_ui=True,  # debug=True,
+               dev_tools_hot_reload=True, threaded=True)
