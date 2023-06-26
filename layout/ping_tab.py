@@ -14,7 +14,7 @@ styles = load_yaml(os.path.join("assets", "styles.yaml"))
 
 # User configuration
 update_interval_ms = 2050
-update_interval_ms_slow = 60*1000
+update_interval_ms_slow = 5*60*1000
 
 # Initialization
 init_table = pd.DataFrame(columns=["Device", "Mean", "Std", "Available"])
@@ -22,7 +22,7 @@ init_table = pd.DataFrame(columns=["Device", "Mean", "Std", "Available"])
 # Objects
 device_ping_distribution = html.Div(className="row", children=[
     html.Div(className="six columns", children=[
-        html.H3(children="Ping distribution (last 24h) [ms]",
+        html.H3(children="Ping distribution Google (last 24h) [ms]",
                 style={'textAlign': 'center',
                        'color': '#FFFFFF'}
                 ),
@@ -35,9 +35,13 @@ device_ping_distribution = html.Div(className="row", children=[
                 ),
         html.Div(children=[
             daq.LEDDisplay(
+                style={
+                    'margin-bottom': 0,  # Or whatever number suits your needs
+                    'margin-top': 80
+                },
                 id="downtime_led",
                 value="200",
-                size=128,
+                size=180,
                 color="#FFFFFF",
                 backgroundColor="#111111",
                 label="seconds",
