@@ -1,26 +1,31 @@
 # house_dashboard repo
 ## Introduction
-It is a dashboard based application that queries different sensors and display the 
-temporal signal in charts. The dashboard is composed of 4 tabs:
+It is a dashboard based application that queries sensor data from a DB and display
+it organised in different tabs:
 
-- Network: This tab is about pinging different servers, from local ones to others online.
-- Energy: Here energy/power sensors are queried and displayed.
-- Temperature: TBD (probably based on ESP8266 Wi-Fi boards)
-- Control: TBD (same devices as in the energy one using public APIs)
+- __Network__: This tab is about pinging different servers, from local ones to others online.
+- __Energy__: Here energy/power sensors are queried and displayed.
+- __Temperature__: TBD (probably based on ESP8266 Wi-Fi boards)
+- Others: It is easily expandable by including new entries in the conf and 
+creating new tabs.
 
-So far, just Kasa smart devices are supported. 
+So far just PostGreSQL is supported, but there is an abstract interface for the
+link to any other system.
 
-The code can be easily containararised using the Dockerfile and compose in the repo.
+The code can be easily containerized using the Dockerfile in the repo (there is
+a compose as well).
 
 ## Usage
-The devices the dashboard queries are specified in the config.yaml file. 
+The devices that the dashboard queries from the interface are specified in the 
+`config.yaml` file. 
 
-The recommended usage is by launching a container, see Dockerfile and docker compose.
+The recommended usage is by launching a container, see Dockerfile and docker 
+compose.
 
 ## Future development
+- Visual and features improvements -> Include more graphs and stats, better layout.
+- Better querying per tab.
 - Development and interface of the temperature sensors.
-- Probably splitting this repo into different layers, leaving the dashboard just as a frontend, not driving
-the query system as well.
+
 
 ## Known bugs
-- Kasa plugs sometimes restart, cutting its power randomly when they are queried from the Kasa API.
