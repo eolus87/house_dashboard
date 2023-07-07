@@ -17,6 +17,7 @@ from ping.pingfunctions import calculate_stats, calculate_histogram, calculate_d
 from power.powerdevicetype import PowerDeviceType
 from layout.ping_tab import ping_tab
 from layout.power_tab import power_tab
+from layout.temperature_tab import temperature_tab
 
 # User configuration
 configuration_path = os.path.join("config", "config.yaml")
@@ -39,6 +40,10 @@ ping_data_extractor = DataExtractor(sensor_type, configuration[sensor_type], que
 sensor_type = "power"
 power_data_extractor = DataExtractor(sensor_type, configuration[sensor_type], querier)
 
+# Initilization temperature
+sensor_type = "temp"
+temperature_data_extractor = DataExtractor(sensor_type, configuration[sensor_type], querier)
+
 # Dash layout
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(style={'backgroundColor': '#111111'},
@@ -48,7 +53,8 @@ app.layout = html.Div(style={'backgroundColor': '#111111'},
                                          'color': '#FFFFFF'}),
                           dcc.Tabs([
                               ping_tab,
-                              power_tab
+                              power_tab,
+                              temperature_tab
                           ])
                       ])
 
@@ -149,6 +155,29 @@ def stream_fig_power(value):
     )
     return fig
 
+
+@app.callback(
+    Output(component_id='temperature_graph', component_property='figure'),
+    Input(component_id='interval_refresh_temperature', component_property="n_intervals")
+)
+def stream_fig_temperature(value):
+    # Retrieve data
+    dfs_dict = temperature_data_extractor.retrieve_type_data(
+        [1],
+        configuration["hours_to_display"])
+    fig = go.Figure()
+    # Plot
+    for df_index, df_name in enumerate(dfs_dict):
+        fig.add_trace(go.Scatter(x=dfs_dict[df_name].index, y=dfs_dict[df_name]["value"],
+                                 name=df_name))
+    fig.update_layout(
+        xaxis_title="Date and Time",
+        yaxis_title="Temperature [C]",
+        template="plotly_dark",
+        margin=dict(t=5, b=5),
+        yaxis={"rangemode": "nonnegative"}
+    )
+    return fig
 
 # @app.callback(
 #     Output(component_id='output-container-button', component_property='children'),
