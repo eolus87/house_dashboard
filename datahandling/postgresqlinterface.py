@@ -11,11 +11,13 @@ from datahandling.abcdbinterface import ABCDBInterface
 
 db_query_time = (
     """
-    SELECT time_stamp, target, value FROM {table_name}
-    WHERE type = '{group_name}'
-    AND target IN {target} 
-    AND time_stamp::timestamp >= (LOCALTIMESTAMP - interval '{hours_to_query} hour')
-    ORDER BY time_stamp::timestamp ASC
+    SELECT time_stamp, target, value FROM (
+        SELECT time_stamp, target, value, ROW_NUMBER() OVER (ORDER BY time_stamp::timestamp ASC)
+        FROM {table_name}
+        WHERE type = '{group_name}'
+        AND target IN {target} 
+        AND time_stamp::timestamp >= (LOCALTIMESTAMP - interval '{hours_to_query} hour')
+    ) x WHERE mod(ROW_NUMBER, {downsample_value}) = 0
     """
 )
 
@@ -32,14 +34,16 @@ class PostGreSqlInterface(ABCDBInterface):
             self,
             group_name: str,
             list_of_targets: List[str],
-            hours_to_query: float
+            hours_to_query: float,
+            downsample_value: int = 1
     ) -> pd.DataFrame:
         # Query filling
         query = db_query_time.format(
             table_name=self.__db_table_name,
             group_name=group_name,
             target=tuple(list_of_targets).__str__().replace(",)", ")"),
-            hours_to_query=hours_to_query
+            hours_to_query=hours_to_query,
+            downsample_value=downsample_value
         )
 
         records = self._query(query)
