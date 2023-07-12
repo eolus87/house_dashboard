@@ -11,7 +11,7 @@ from utilities.utilities import load_yaml
 styles = load_yaml(os.path.join("assets", "styles.yaml"))
 
 # User configuration
-update_interval_ms = 30050
+update_interval_ms = 60050
 
 # Initialization
 temperature_tab = dcc.Tab(label='Temperature',
