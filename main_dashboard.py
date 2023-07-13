@@ -164,7 +164,8 @@ def stream_fig_temperature(value):
     # Retrieve data
     dfs_dict = temperature_data_extractor.retrieve_type_data(
         [1],
-        configuration["hours_to_display"])
+        168,
+        24)
     fig = go.Figure()
     # Plot
     for df_index, df_name in enumerate(dfs_dict):
@@ -193,6 +194,7 @@ def stream_fig_temperature(value):
 #     return 'The button has been clicked {} times'.format(
 #         n_clicks
 #     )
+
 
 app.run_server(host="0.0.0.0", port=8069, dev_tools_ui=True,  # debug=True,
                dev_tools_hot_reload=True, threaded=True)
