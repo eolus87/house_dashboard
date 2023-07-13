@@ -14,11 +14,21 @@ class DataExtractor:
         self.__type_sensors = devices_dict["devices"]
         self.__querier = querier
 
-    def retrieve_type_data(self, device_type: List[int], past_time_hours: float) -> Dict:
+    def retrieve_type_data(
+            self,
+            device_type: List[int],
+            past_time_hours: float,
+            downsample_value: int = 1
+    ) -> Dict:
         # Obtaining the required targets for the Query
         devices_ip, devices_name = self.__devices_type_details(device_type)
         # Querying
-        dict_of_dfs = self.__retrieve_data(devices_ip, devices_name, past_time_hours)
+        dict_of_dfs = self.__retrieve_data(
+            devices_ip,
+            devices_name,
+            past_time_hours,
+            downsample_value
+        )
         return dict_of_dfs
 
     def retrieve_sensors_data(self, devices_name: List[str], past_time_hours: float) -> Dict:
@@ -43,10 +53,21 @@ class DataExtractor:
                 devices_name.append(device)
         return devices_ip, devices_name
 
-    def __retrieve_data(self, devices_ip: List[str], devices_name: List[str], past_time_hours: float) -> Dict:
+    def __retrieve_data(
+            self,
+            devices_ip: List[str],
+            devices_name: List[str],
+            past_time_hours: float,
+            downsamle_value: int = 1,
+    ) -> Dict:
         # Querying
         try:
-            records = self.__querier.query_sensor_data_latest_hours(self.__sensor_type, devices_ip, past_time_hours)
+            records = self.__querier.query_sensor_data_latest_hours(
+                self.__sensor_type,
+                devices_ip,
+                past_time_hours,
+                downsamle_value
+            )
         except Exception as inst:
             print(f"Error while querying querier: {inst}")
             records = pd.DataFrame()
