@@ -5,7 +5,7 @@ it organised in different tabs:
 
 - __Network__: This tab is about pinging different servers, from local ones to others online.
 - __Energy__: Here energy/power sensors are queried and displayed.
-- __Temperature__: TBD (probably based on ESP8266 Wi-Fi boards)
+- __Temperature__: Implemented with time series graph.
 - Others: It is easily expandable by including new entries in the conf and 
 creating new tabs.
 
