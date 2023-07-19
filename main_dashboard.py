@@ -158,7 +158,7 @@ def stream_fig_power(value):
 
 @app.callback(
     Output(component_id='temperature_graph', component_property='figure'),
-    Input(component_id='interval_refresh_temperature', component_property="n_intervals")
+    Input(component_id='interval_refresh_temperature_slow', component_property="n_intervals")
 )
 def stream_fig_temperature(value):
     # Retrieve data
@@ -194,6 +194,76 @@ def stream_fig_temperature(value):
 #     return 'The button has been clicked {} times'.format(
 #         n_clicks
 #     )
+
+
+@app.callback(
+    Output(component_id='dining_room_indicator', component_property='figure'),
+    [Input(component_id='interval_refresh_temperature', component_property='n_intervals')],
+    )
+def update_dining_room_temp(n_clicks):
+    hours_to_retrieve = 1
+    sensor_name = "dining_room"
+    dfs_dict = temperature_data_extractor.retrieve_sensors_data([sensor_name], hours_to_retrieve)
+    z = np.polyfit(
+        np.arange(0, len(dfs_dict[sensor_name])),
+        dfs_dict[sensor_name].to_numpy().astype(float),
+        1
+    )
+    current_value = float(dfs_dict[sensor_name].iloc[-1])
+    reference_value = current_value - np.around(z[0][0], 2)
+    fig = go.Figure(go.Indicator(
+        mode="number+delta",
+        value=current_value,
+        number={"prefix": "", "suffix": " C"},
+        delta={"reference": reference_value, "valueformat": ".1f", "prefix": "", "suffix": " C/h"},
+        title={"text": "Dining Room Temp", 'font': {'size': 24}},
+        domain={'y': [0, 1], 'x': [0, 1]}))
+
+    fig.update_layout(
+        paper_bgcolor='#111111',
+        font={'color': "white",
+              'family': "Calibri",
+              },
+        autosize=False,
+        height=250,
+    )
+
+    return fig
+
+
+@app.callback(
+    Output(component_id='bed_room_indicator', component_property='figure'),
+    [Input(component_id='interval_refresh_temperature', component_property='n_intervals')],
+    )
+def update_dining_room_temp(n_clicks):
+    hours_to_retrieve = 1
+    sensor_name = "bed_room"
+    dfs_dict = temperature_data_extractor.retrieve_sensors_data([sensor_name], hours_to_retrieve)
+    z = np.polyfit(
+        np.arange(0, len(dfs_dict[sensor_name])),
+        dfs_dict[sensor_name].to_numpy().astype(float),
+        1
+    )
+    current_value = float(dfs_dict[sensor_name].iloc[-1])
+    reference_value = current_value - np.around(z[0][0], 2)
+    fig = go.Figure(go.Indicator(
+        mode="number+delta",
+        value=current_value,
+        number={"prefix": "", "suffix": " C"},
+        delta={"reference": reference_value, "valueformat": ".1f", "prefix": "", "suffix": " C/h"},
+        title={"text": "Bed Room Temp", 'font': {'size': 24}},
+        domain={'y': [0, 1], 'x': [0, 1]}))
+
+    fig.update_layout(
+        paper_bgcolor='#111111',
+        font={'color': "white",
+              'family': "Calibri",
+              },
+        autosize=False,
+        height=250,
+    )
+
+    return fig
 
 
 app.run_server(host="0.0.0.0", port=8069, dev_tools_ui=True,  # debug=True,
