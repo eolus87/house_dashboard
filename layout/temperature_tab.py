@@ -4,6 +4,7 @@ __author__ = "Nicolas Gutierrez"
 import os
 # Third party libraries
 from dash import dcc, html
+import plotly.graph_objects as go
 # Custom libraries
 from utilities.utilities import load_yaml
 
@@ -11,7 +12,26 @@ from utilities.utilities import load_yaml
 styles = load_yaml(os.path.join("assets", "styles.yaml"))
 
 # User configuration
-update_interval_ms = 60050
+update_interval_ms = 10 * 1000
+update_interval_ms_slow = 300 * 1000 + 50
+
+# Objects
+current_temp = html.Div(className="row", children=[
+    html.Div(className="six columns", children=[
+        dcc.Graph(id='dining_room_indicator')
+    ]),
+    html.Div(className="six columns", children=[
+            dcc.Graph(id='bed_room_indicator')
+        ])
+])
+
+week_temperature = html.Div([
+    html.H2(children="Temperature [C]",
+            style={'textAlign': 'center',
+                   'color': '#FFFFFF'}
+            ),
+    dcc.Graph(id='temperature_graph')])
+
 
 # Initialization
 temperature_tab = dcc.Tab(label='Temperature',
@@ -23,11 +43,12 @@ temperature_tab = dcc.Tab(label='Temperature',
                                     interval=update_interval_ms,
                                     n_intervals=0
                                 ),
-
+                                dcc.Interval(
+                                    id='interval_refresh_temperature_slow',
+                                    interval=update_interval_ms_slow,
+                                    n_intervals=0
+                                ),
                                 # Title and Graph
-                                html.H2(children="Temperature [C]",
-                                        style={'textAlign': 'center',
-                                               'color': '#FFFFFF'}
-                                        ),
-                                dcc.Graph(id='temperature_graph'),
+                                current_temp,
+                                week_temperature
                             ])
