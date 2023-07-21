@@ -18,6 +18,7 @@ from power.powerdevicetype import PowerDeviceType
 from layout.ping_tab import ping_tab
 from layout.power_tab import power_tab
 from layout.temperature_tab import temperature_tab
+from temp.tempfunctions import calculate_temp_and_ref
 
 # User configuration
 configuration_path = os.path.join("config", "config.yaml")
@@ -165,7 +166,7 @@ def stream_fig_temperature(value):
     dfs_dict = temperature_data_extractor.retrieve_type_data(
         [1],
         168,
-        24)
+        25)
     fig = go.Figure()
     # Plot
     for df_index, df_name in enumerate(dfs_dict):
@@ -204,20 +205,14 @@ def update_dining_room_temp(n_clicks):
     hours_to_retrieve = 1
     sensor_name = "dining_room"
     dfs_dict = temperature_data_extractor.retrieve_sensors_data([sensor_name], hours_to_retrieve)
-    z = np.polyfit(
-        np.arange(0, len(dfs_dict[sensor_name])),
-        dfs_dict[sensor_name].to_numpy().astype(float),
-        1
-    )
-    current_value = float(dfs_dict[sensor_name].iloc[-1])
-    reference_value = current_value - np.around(z[0][0], 2)
+    current_value, reference_value = calculate_temp_and_ref(dfs_dict[sensor_name])
     fig = go.Figure(go.Indicator(
         mode="number+delta",
         value=current_value,
         number={"prefix": "", "suffix": " C"},
         delta={"reference": reference_value, "valueformat": ".1f", "prefix": "", "suffix": " C/h"},
         title={"text": "Dining Room Temp", 'font': {'size': 24}},
-        domain={'y': [0, 1], 'x': [0, 1]}))
+        domain={'y': [0, 1], 'x': [0.1, 0.9]}))
 
     fig.update_layout(
         paper_bgcolor='#111111',
@@ -239,20 +234,14 @@ def update_dining_room_temp(n_clicks):
     hours_to_retrieve = 1
     sensor_name = "bed_room"
     dfs_dict = temperature_data_extractor.retrieve_sensors_data([sensor_name], hours_to_retrieve)
-    z = np.polyfit(
-        np.arange(0, len(dfs_dict[sensor_name])),
-        dfs_dict[sensor_name].to_numpy().astype(float),
-        1
-    )
-    current_value = float(dfs_dict[sensor_name].iloc[-1])
-    reference_value = current_value - np.around(z[0][0], 2)
+    current_value, reference_value = calculate_temp_and_ref(dfs_dict[sensor_name])
     fig = go.Figure(go.Indicator(
         mode="number+delta",
         value=current_value,
         number={"prefix": "", "suffix": " C"},
         delta={"reference": reference_value, "valueformat": ".1f", "prefix": "", "suffix": " C/h"},
         title={"text": "Bed Room Temp", 'font': {'size': 24}},
-        domain={'y': [0, 1], 'x': [0, 1]}))
+        domain={'y': [0, 1], 'x': [0.1, 0.9]}))
 
     fig.update_layout(
         paper_bgcolor='#111111',
