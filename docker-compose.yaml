@@ -1,7 +1,7 @@
 services:
   housedashboard:
     container_name: housedashboard_container
-    image: house_dashboard:v0.2
+    image: house_dashboard:0.3
     restart: always
     ports:
       - "8069:8069"
