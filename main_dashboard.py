@@ -19,33 +19,42 @@ from layout.ping_tab import ping_tab
 from layout.power_tab import power_tab
 from layout.temperature_tab import temperature_tab
 from temp.tempfunctions import calculate_temp_and_ref
+from utilities.init_logger import init_logger
 
 # User configuration
 configuration_path = os.path.join("config", "config.yaml")
+logger = init_logger("house_dashboard_logs.txt")
 
 # Style
+logger.info("Loading styles")
 pd.options.plotting.backend = "plotly"
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 # Code Configuration
+logger.info("Loading configuration")
 configuration = load_yaml(configuration_path)
 
 # Querier
 querier = PostGreSqlInterface(configuration["postgresql"])
 
+logger.info("Initializing Data Extractors")
 # Initialization ping
 sensor_type = "ping"
 ping_data_extractor = DataExtractor(sensor_type, configuration[sensor_type], querier)
+logger.debug(f"ping devices: {','.join(list(configuration[sensor_type]['devices'].keys()))}")
 
 # Initialization energy
 sensor_type = "power"
 power_data_extractor = DataExtractor(sensor_type, configuration[sensor_type], querier)
+logger.debug(f"power devices: {','.join(list(configuration[sensor_type]['devices'].keys()))}")
 
 # Initilization temperature
 sensor_type = "temp"
 temperature_data_extractor = DataExtractor(sensor_type, configuration[sensor_type], querier)
+logger.debug(f"temp devices: {','.join(list(configuration[sensor_type]['devices'].keys()))}")
 
 # Dash layout
+logger.info("Initializing Dash App")
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(style={'backgroundColor': '#111111'},
                       children=[
@@ -255,5 +264,6 @@ def update_dining_room_temp(n_clicks):
     return fig
 
 
+logger.info("Starting server")
 app.run_server(host="0.0.0.0", port=8069, dev_tools_ui=True,  # debug=True,
                dev_tools_hot_reload=True, threaded=True)
