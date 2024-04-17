@@ -130,19 +130,6 @@ def stream_fig_network(value):
 
 
 @app.callback(
-    Output(component_id='personal_devices_table', component_property='data'),
-    Input(component_id='interval_refresh_ping', component_property="n_intervals")
-)
-def stream_table(value):
-    dict_of_dfs = ping_data_extractor.retrieve_type_data(
-        [PingDeviceType.PERSONAL_DEVICE],
-        configuration["hours_for_tables"])
-    table = calculate_stats(dict_of_dfs)
-
-    return table.to_dict('records')
-
-
-@app.callback(
     Output(component_id='power_graph', component_property='figure'),
     Input(component_id='interval_refresh_power', component_property="n_intervals")
 )

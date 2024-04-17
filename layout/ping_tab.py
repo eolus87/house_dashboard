@@ -3,9 +3,8 @@ __author__ = "Nicolas Gutierrez"
 # Standard libraries
 import os
 # Third party libraries
-from dash import dcc, html, dash_table
+from dash import dcc, html
 import dash_daq as daq
-import pandas as pd
 # Custom libraries
 from utilities.utilities import load_yaml
 
@@ -15,9 +14,6 @@ styles = load_yaml(os.path.join("assets", "styles.yaml"))
 # User configuration
 update_interval_ms = 2050
 update_interval_ms_slow = 5*60*1000
-
-# Initialization
-init_table = pd.DataFrame(columns=["Device", "Mean", "Std", "Available"])
 
 # Objects
 device_ping_distribution = html.Div(className="row", children=[
@@ -58,24 +54,6 @@ infrastructure_figure = html.Div([
             ),
     dcc.Graph(id='infrastructure_graph')])
 
-personal_devices_table = html.Div([
-    html.H2(children="Personal devices [ms]",
-            style={'textAlign': 'center',
-                   'color': '#FFFFFF'}
-            ),
-    html.Div(
-        dash_table.DataTable(
-            data=init_table.to_dict('records'),
-            columns=[{"name": i, "id": i} for i in init_table.columns],
-            style_cell={'textAlign': 'center',
-                        'backgroundColor': '#111111',
-                        'color': 'white',
-                        'font_size': '20px'},
-            style_header={'border': '1px solid black',
-                          'font_size': '30px'},
-            style_as_list_view=True,
-            id='personal_devices_table'))])
-
 # Tab definition and layout
 ping_tab = dcc.Tab(label='Ping',
                    style=styles["tab_style"],
@@ -97,6 +75,4 @@ ping_tab = dcc.Tab(label='Ping',
                        device_ping_distribution,
                        # Title and Graph
                        infrastructure_figure,
-                       # Title and Table
-                       personal_devices_table,
                    ])
